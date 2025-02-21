@@ -26,6 +26,7 @@ use core::future::Future;
 
 type IotaAddressRaw = [u8; IOTA_ADDRESS_LENGTH];
 
+#[expect(dead_code)]
 pub struct IotaPubKeyAddress(ledger_device_sdk::ecc::ECPublicKey<65, 'E'>, IotaAddressRaw);
 
 impl Address<IotaPubKeyAddress, ledger_device_sdk::ecc::ECPublicKey<65, 'E'>>
@@ -51,8 +52,7 @@ impl core::fmt::Display for IotaPubKeyAddress {
     }
 }
 
-pub type BipParserImplT =
-    impl AsyncParser<Bip32Key, ByteStream> + HasOutput<Bip32Key, Output = ArrayVec<u32, 10>>;
+pub type BipParserImplT = impl AsyncParser<Bip32Key, ByteStream, Output = ArrayVec<u32, 10>>;
 pub const BIP_PATH_PARSER: BipParserImplT = SubInterp(DefaultInterp);
 
 // Need a path of length 5, as make_bip32_path panics with smaller paths
@@ -119,7 +119,10 @@ impl HasOutput<CallArgSchema> for DefaultInterp {
 }
 
 impl<BS: Clone + Readable> AsyncParser<CallArgSchema, BS> for DefaultInterp {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let enum_variant =
@@ -210,7 +213,10 @@ impl HasOutput<CommandSchema> for DefaultInterp {
 }
 
 impl<BS: Clone + Readable> AsyncParser<CommandSchema, BS> for DefaultInterp {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let enum_variant =
@@ -270,7 +276,10 @@ impl HasOutput<ArgumentSchema> for DefaultInterp {
 }
 
 impl<BS: Clone + Readable> AsyncParser<ArgumentSchema, BS> for DefaultInterp {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let enum_variant =
@@ -325,7 +334,10 @@ impl<const PROMPT: bool> HasOutput<ProgrammableTransaction<PROMPT>>
 impl<BS: Clone + Readable, const PROMPT: bool> AsyncParser<ProgrammableTransaction<PROMPT>, BS>
     for ProgrammableTransaction<PROMPT>
 {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let mut recipient = None;
@@ -522,7 +534,10 @@ impl<const PROMPT: bool> HasOutput<TransactionKind<PROMPT>> for TransactionKind<
 impl<BS: Clone + Readable, const PROMPT: bool> AsyncParser<TransactionKind<PROMPT>, BS>
     for TransactionKind<PROMPT>
 {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let enum_variant =
@@ -578,7 +593,10 @@ impl HasOutput<TransactionExpiration> for DefaultInterp {
 }
 
 impl<BS: Clone + Readable> AsyncParser<TransactionExpiration, BS> for DefaultInterp {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let enum_variant =
@@ -605,7 +623,7 @@ impl<BS: Clone + Readable> AsyncParser<TransactionExpiration, BS> for DefaultInt
 }
 
 const fn gas_data_parser<BS: Clone + Readable, const PROMPT: bool>(
-) -> impl AsyncParser<GasData<PROMPT>, BS> + HasOutput<GasData<PROMPT>, Output = ()> {
+) -> impl AsyncParser<GasData<PROMPT>, BS, Output = ()> {
     Action(
         (
             SubInterp(object_ref_parser()),
@@ -630,13 +648,11 @@ const fn gas_data_parser<BS: Clone + Readable, const PROMPT: bool>(
     )
 }
 
-const fn object_ref_parser<BS: Readable>(
-) -> impl AsyncParser<ObjectRef, BS> + HasOutput<ObjectRef, Output = ()> {
+const fn object_ref_parser<BS: Readable>() -> impl AsyncParser<ObjectRef, BS, Output = ()> {
     Action((DefaultInterp, DefaultInterp, DefaultInterp), |_| Some(()))
 }
 
-const fn intent_parser<BS: Readable>(
-) -> impl AsyncParser<Intent, BS> + HasOutput<Intent, Output = ()> {
+const fn intent_parser<BS: Readable>() -> impl AsyncParser<Intent, BS, Output = ()> {
     Action((DefaultInterp, DefaultInterp, DefaultInterp), |_| {
         trace!("Intent Ok");
         Some(())
@@ -644,8 +660,7 @@ const fn intent_parser<BS: Readable>(
 }
 
 const fn transaction_data_v1_parser<BS: Clone + Readable, const PROMPT: bool>(
-) -> impl AsyncParser<TransactionDataV1<PROMPT>, BS> + HasOutput<TransactionDataV1<PROMPT>, Output = ()>
-{
+) -> impl AsyncParser<TransactionDataV1<PROMPT>, BS, Output = ()> {
     Action(
         (
             TransactionKind::<PROMPT>,
@@ -664,7 +679,10 @@ impl<const PROMPT: bool> HasOutput<TransactionData<PROMPT>> for TransactionData<
 impl<BS: Clone + Readable, const PROMPT: bool> AsyncParser<TransactionData<PROMPT>, BS>
     for TransactionData<PROMPT>
 {
-    type State<'c> = impl Future<Output = Self::Output> + 'c where BS: 'c;
+    type State<'c>
+        = impl Future<Output = Self::Output> + 'c
+    where
+        BS: 'c;
     fn parse<'a: 'c, 'b: 'c, 'c>(&'b self, input: &'a mut BS) -> Self::State<'c> {
         async move {
             let enum_variant =
@@ -688,7 +706,7 @@ impl<BS: Clone + Readable, const PROMPT: bool> AsyncParser<TransactionData<PROMP
 }
 
 const fn tx_parser<BS: Clone + Readable, const PROMPT: bool>(
-) -> impl AsyncParser<IntentMessage<PROMPT>, BS> + HasOutput<IntentMessage<PROMPT>, Output = ()> {
+) -> impl AsyncParser<IntentMessage<PROMPT>, BS, Output = ()> {
     Action((intent_parser(), TransactionData::<PROMPT>), |_| Some(()))
 }
 
